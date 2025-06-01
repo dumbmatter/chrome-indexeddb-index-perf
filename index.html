@@ -1,0 +1,223 @@
+<!DOCTYPE HTML>
+<html>
+  <body>
+    <h1>IndexedDB index performance test</h1>
+    <p>First create a database containing a single object store with 500,000 records in it. The object store has one index, and the value of that index is 1 for 1,000 records and 0 for the remaining records. <b>It takes a several minutes the first time you run this to save all the data.</b></p>
+    <button id="button-open">Create/open DB</button><button id="button-reset" style="margin-left: 0.25rem">Reset DB</button><br><br>
+    
+    <p>Then, repeatedly shuffle the index values (radomly reassign those 1s and 0s in the index property for all records) and measure how long it takes to do `getAll(1)` on the index. Ideally this would not get slower over time, since there are always only 1,000 records we are retrieving from the index. And in Firefox it doesn't get slower. But in Chrome it keeps getting slower and slower.</p>
+    <button id="button-shuffleTest" disabled>Shuffle+test 1,000 times</button><button id="button-shuffleTestStop" style="margin-left: 0.25rem" disabled>Stop</button>
+
+    <h2>getAll performance log</h2>
+    <ol id="duration-log"></ol>
+  </body>
+  <script>
+const dbName = "test";
+const dbVersion = 1;
+const NUM_RECORDS = 500000;
+const NUM_INDEX_RECORDS = 1000;
+
+let shuffleTestStop = false;
+
+const record = {"awards":[],"born":{"year":2004,"loc":"Wisconsin, USA"},"college":"Louisville","contract":{"amount":1000,"exp":2030},"draft":{"round":2,"pick":13,"tid":27,"year":2023,"originalTid":27,"pot":54,"ovr":30,"skills":[]},"face":{"fatness":0.92,"teamColors":["#89bfd3","#7a1319","#07364f"],"hairBg":{"id":"none"},"body":{"id":"body3","color":"#ddb7a0","size":0.97},"jersey":{"id":"jersey3"},"ear":{"id":"ear1","size":1.08},"head":{"id":"head11","shave":"rgba(0,0,0,0.12)"},"eyeLine":{"id":"none"},"smileLine":{"id":"line4","size":1.59},"miscLine":{"id":"freckles1"},"facialHair":{"id":"none"},"eye":{"id":"eye2","angle":4},"eyebrow":{"id":"eyebrow17","angle":16},"hair":{"id":"curly","color":"#2C1608","flip":true},"mouth":{"id":"mouth6","flip":false},"nose":{"id":"nose5","flip":false,"size":1.05},"glasses":{"id":"glasses1-primary"},"accessories":{"id":"headband"}},"firstName":"Justin","gamesUntilTradable":0,"hgt":86,"imgURL":"","injury":{"type":"Healthy","gamesRemaining":0},"injuries":[],"lastName":"Lucas","moodTraits":["F","L"],"numDaysFreeAgent":31,"ptModifier":1,"relatives":[],"ratings":[{"stre":49,"spd":48,"jmp":42,"endu":28,"ins":52,"dnk":49,"ft":30,"fg":26,"tp":23,"oiq":33,"diq":35,"drb":37,"pss":36,"reb":53,"hgt":69,"fuzz":-2.4545284920385515,"ovr":38,"pos":"C","pot":58,"season":2025,"skills":[]},{"stre":46,"spd":45,"jmp":39,"endu":28,"ins":49,"dnk":47,"ft":27,"fg":23,"tp":20,"oiq":33,"diq":35,"drb":35,"pss":34,"reb":51,"hgt":69,"fuzz":-0.38746341243674864,"ovr":36,"pos":"C","pot":54,"season":2026,"skills":[]},{"stre":45,"spd":44,"jmp":38,"endu":30,"ins":48,"dnk":46,"ft":26,"fg":22,"tp":19,"oiq":35,"diq":37,"drb":34,"pss":33,"reb":50,"hgt":69,"fuzz":0.957839676163335,"ovr":36,"pos":"C","pot":44,"season":2027,"skills":[]},{"stre":45,"spd":44,"jmp":38,"endu":30,"ins":48,"dnk":46,"ft":26,"fg":22,"tp":19,"oiq":35,"diq":37,"drb":34,"pss":33,"reb":50,"hgt":69,"fuzz":0.23368236408314155,"ovr":36,"pos":"C","pot":43,"season":2028,"skills":[]},{"stre":52,"spd":46,"jmp":40,"endu":36,"ins":54,"dnk":51,"ft":29,"fg":29,"tp":25,"oiq":39,"diq":40,"drb":39,"pss":36,"reb":53,"hgt":69,"fuzz":1.5019271373813798,"ovr":43,"pos":"C","pot":48,"season":2029,"skills":[]},{"stre":49,"spd":44,"jmp":38,"endu":34,"ins":53,"dnk":49,"ft":27,"fg":27,"tp":22,"oiq":38,"diq":39,"drb":37,"pss":34,"reb":51,"hgt":69,"fuzz":0.7753445196609948,"ovr":40,"pos":"C","pot":44,"season":2030,"skills":[]}],"retiredYear":2030,"rosterOrder":10,"salaries":[{"season":2025,"amount":1000},{"season":2026,"amount":1060},{"season":2027,"amount":1060}],"stats":[{"playoffs":false,"season":2025,"tid":27,"yearsWithTeam":1,"per":0,"ewa":-0.0017524241216957772,"astp":0,"blkp":0,"drbp":0,"orbp":0,"stlp":0,"trbp":0,"usgp":0,"drtg":102.06313195347317,"ortg":0,"pm100":0,"onOff100":-14.54473057579563,"dws":0,"ows":0,"obpm":-3.9495143977410234,"dbpm":-0.48829309003915844,"vorp":-0.0002572668006021498,"gp":1,"gs":0,"min":0.41537411375100375,"minAvailable":47.999999999999986,"fg":0,"fga":0,"fgAtRim":0,"fgaAtRim":0,"fgLowPost":0,"fgaLowPost":0,"fgMidRange":0,"fgaMidRange":0,"tp":0,"tpa":0,"ft":0,"fta":0,"pm":0,"orb":0,"drb":0,"ast":0,"tov":0,"stl":0,"blk":0,"ba":0,"pf":0,"pts":0,"dd":0,"td":0,"qd":0,"fxf":0,"jerseyNumber":"35"},{"playoffs":false,"season":2026,"tid":27,"yearsWithTeam":2,"per":0,"ewa":0,"astp":0,"blkp":0,"drbp":0,"orbp":0,"stlp":0,"trbp":0,"usgp":0,"drtg":0,"ortg":0,"pm100":0,"onOff100":11.240743091441377,"dws":0,"ows":0,"obpm":-5.637121469205462,"dbpm":-3.8057906398019847,"vorp":-1.8909837675323805e-12,"gp":0,"gs":0,"min":0,"minAvailable":47.999999999999986,"fg":0,"fga":0,"fgAtRim":0,"fgaAtRim":0,"fgLowPost":0,"fgaLowPost":0,"fgMidRange":0,"fgaMidRange":0,"tp":0,"tpa":0,"ft":0,"fta":0,"pm":0,"orb":0,"drb":0,"ast":0,"tov":0,"stl":0,"blk":0,"ba":0,"pf":0,"pts":0,"dd":0,"td":0,"qd":0,"fxf":0,"jerseyNumber":"35"},{"playoffs":false,"season":2027,"tid":27,"yearsWithTeam":3,"per":0,"ewa":0,"astp":0,"blkp":0,"drbp":0,"orbp":0,"stlp":0,"trbp":0,"usgp":0,"drtg":0,"ortg":0,"pm100":0,"onOff100":21.858975838592194,"dws":0,"ows":0,"obpm":-5.862464511675999,"dbpm":-5.0751369433648765,"vorp":-2.2707320769920787e-12,"gp":0,"gs":0,"min":0,"minAvailable":48.00000000000029,"fg":0,"fga":0,"fgAtRim":0,"fgaAtRim":0,"fgLowPost":0,"fgaLowPost":0,"fgMidRange":0,"fgaMidRange":0,"tp":0,"tpa":0,"ft":0,"fta":0,"pm":0,"orb":0,"drb":0,"ast":0,"tov":0,"stl":0,"blk":0,"ba":0,"pf":0,"pts":0,"dd":0,"td":0,"qd":0,"fxf":0,"jerseyNumber":"35"}],"statsTids":[27],"transactions":[],"weight":264,"yearsFreeAgent":2,"value":43.63958259021277,"valueNoPot":43.13563827553217,"valueFuzz":43.63958259021277,"valueNoPotFuzz":43.13563827553217,"jerseyNumber":"35","diedYear":2110};
+
+const deleteDB = () => {
+  return new Promise((resolve, reject) => {
+    console.log("Deleting database...");
+    db?.close();
+    const request = indexedDB.deleteDatabase(dbName);
+    request.addEventListener("success", (event) => {
+      console.log("Done!")
+      resolve();
+    });
+    request.addEventListener("error", (event) => {
+      console.log("Error!");
+      reject(event.target.error);
+    });
+  });
+};
+
+const openDB = () => {
+  return new Promise(async (resolve, reject) => {
+    console.log("Creating database...");
+    const request = indexedDB.open(dbName, dbVersion);
+    request.addEventListener("upgradeneeded", (event) => {
+      const db = event.target.result;
+      const playerStore = db.createObjectStore("players", {
+        keyPath: "pid",
+        autoIncrement: true,
+      });
+      playerStore.createIndex("tid", "tid");
+
+      console.log("Adding initial data to database...");
+      for (let i = 0; i < NUM_RECORDS; i++) {
+        if (i % Math.round(NUM_RECORDS / 100) === 0) {
+          const pctDone = Math.round(100 * i / NUM_RECORDS);
+          console.log(`${pctDone}% done adding data`);
+        }
+        const row = {
+          ...record,
+          tid: i < NUM_INDEX_RECORDS ? 1 : 0,
+        };
+
+        playerStore.add(row);
+      }
+    });
+    request.addEventListener("success", (event) => {
+      console.log("Done!");
+      resolve(event.target.result);
+    });
+    request.addEventListener("error", (event) => {
+      reject(event.target.error);
+    });
+  });
+};
+
+const shuffle = (array) => {
+  let currentIndex = array.length;
+  while (currentIndex != 0) {
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+}
+
+const shuffleIndexKeys = () => {
+  return new Promise(async (resolve, reject) => {
+    console.log("Shuffling index keys...");
+
+    const transaction = db.transaction("players", "readwrite");
+    const playerStore = transaction.objectStore("players");
+
+    const request = playerStore.count();
+    request.addEventListener("success", (event) => {
+      const indexKeys = [
+        ...(new Array(NUM_INDEX_RECORDS).fill(1)),
+        ...(new Array(NUM_RECORDS - NUM_INDEX_RECORDS).fill(0)),
+      ];
+      console.log(`${NUM_INDEX_RECORDS} rows with index 1, ${NUM_RECORDS - NUM_INDEX_RECORDS} rows with index 0`)
+      shuffle(indexKeys);
+
+      let i = 0;
+      const request2 = playerStore.openCursor();
+      request2.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const value = cursor.value;
+          if (value.tid !== indexKeys[i]) {
+            value.tid = indexKeys[i];
+            cursor.update(value);
+          }
+
+          i += 1;
+          cursor.continue();
+        }
+      };
+    });
+
+
+    transaction.addEventListener("complete", (event) => {
+      console.log("Done!");
+      resolve();
+    });
+    transaction.addEventListener("error", (event) => {
+      reject(event.target.error);
+    });
+  });
+};
+
+const testPerf = () => {
+  return new Promise(async (resolve, reject) => {
+    console.log("Running perf test...");
+    const transaction = db.transaction("players");
+    const playerStore = transaction.objectStore("players");
+
+    const start = new Date();
+    let duration;
+    const request = playerStore
+      .index("tid")
+      .getAll(1);
+    request.addEventListener("success", (event) => {
+      console.log(`Retrieved ${event.target.result.length} rows`);
+      const end = new Date();
+      duration = Math.round(end - start);
+      console.log(`${duration} ms`);
+    });
+
+    transaction.addEventListener("complete", (event) => {
+      resolve(duration);
+    });
+    transaction.addEventListener("error", (event) => {
+      reject(event.target.error);
+    });
+  });
+};
+
+let db;
+
+const buttonOpen = document.getElementById("button-open");
+const buttonShuffleTest = document.getElementById("button-shuffleTest");
+const buttonShuffleTestStop = document.getElementById("button-shuffleTestStop");
+const buttonReset = document.getElementById("button-reset");
+const durationLog = document.getElementById("duration-log");
+
+buttonOpen.addEventListener("click", async () => {
+  buttonOpen.disabled = true;
+  buttonReset.disabled = true;
+  buttonShuffleTest.disabled = true;
+  buttonShuffleTestStop.disabled = true;
+
+  db = await openDB();
+
+  buttonOpen.disabled = true;
+  buttonReset.disabled = false;
+  buttonShuffleTest.disabled = false;
+  buttonShuffleTestStop.disabled = false;
+});
+
+buttonReset.addEventListener("click", async () => {
+  buttonOpen.disabled = true;
+  buttonReset.disabled = true;
+  buttonShuffleTest.disabled = true;
+  buttonShuffleTestStop.disabled = true;
+
+  await deleteDB();
+
+  buttonOpen.disabled = false;
+  buttonReset.disabled = false;
+  buttonShuffleTest.disabled = true;
+  buttonShuffleTestStop.disabled = true;
+});
+
+buttonShuffleTest.addEventListener("click", async () => {
+  buttonOpen.disabled = true;
+  buttonReset.disabled = true;
+  buttonShuffleTest.disabled = true;
+  buttonShuffleTestStop.disabled = false;
+
+  for (let i = 0; i < 1000; i++) {
+    await shuffleIndexKeys();
+    const duration = await testPerf();
+
+    const node = document.createElement("li");
+    node.textContent = `${duration} ms`;
+    durationLog.appendChild(node);
+
+    if (shuffleTestStop) {
+      shuffleTestStop = false;
+      break;
+    }
+  }
+
+  buttonOpen.disabled = true;
+  buttonReset.disabled = false;
+  buttonShuffleTest.disabled = false;
+  buttonShuffleTestStop.disabled = true;
+});
+
+buttonShuffleTestStop.addEventListener("click", async () => {
+  shuffleTestStop = true;
+  buttonShuffleTestStop.disabled = true;
+});
+  </script>
+</html>
