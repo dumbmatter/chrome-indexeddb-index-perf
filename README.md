@@ -12,7 +12,7 @@ Repeat this many times and it keeps getting slower:
 
 I ran the same test in Firefox 139 and did not observe any slowdown. Even after 1,000 iterations, it still takes about 100 ms.
 
-I also ran the same test in Chrome 100 to see if this issue has been around for a while... and it has! Chrome 100 performs similarly to Chrome 136.
+I also ran the same test in Chrome 100 and Chrome 80 to see if this issue has been around for a while... and it has! The old versions of Chrome perform similarly to Chrome 136.
 
 In the web app where I noticed this behavior, I have user reports that some queries like this are taking minutes when they should be taking <1 second.
 
