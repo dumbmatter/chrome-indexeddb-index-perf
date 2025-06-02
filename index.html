@@ -5,7 +5,7 @@
 
     <p><a href="https://github.com/dumbmatter/chrome-indexeddb-index-perf">More info</a></p>
 
-    <p>First create a database containing a single object store with 500,000 records in it. The object store has one index, and the value of that index is 1 for 1,000 records and 0 for the remaining records. <b>It takes a several minutes the first time you run this to save all the data.</b></p>
+    <p>First create a database containing a single object store with 500,000 records in it. The object store has one index, and the value of that index is 1 for 1,000 records and 0 for the remaining records. <b>It takes several minutes the first time you run this to save all the data.</b></p>
     <button id="button-open">Create/open DB</button><button id="button-reset" style="margin-left: 0.25rem">Reset DB</button><br><br>
     
     <p>Then, repeatedly shuffle the index values (radomly reassign those 1s and 0s in the index property for all records) and measure how long it takes to do `getAll(1)` on the index. Ideally this would not get slower over time, since there are always only 1,000 records we are retrieving from the index. And in Firefox it doesn't get slower. But in Chrome it keeps getting slower and slower.</p>
