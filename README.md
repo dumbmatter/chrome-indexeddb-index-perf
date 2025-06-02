@@ -2,7 +2,7 @@
 
 I noticed some performance issues in IndexedDB with indexes in large object stores where the index values in the records changes many times. Like if you have an index on the "foo" property, and the values you have in "foo" in your records change over time.
 
-In this example I made, it creates 500,000 nearly identical records in an object store with one index. 1,000 of those records have 1 for the index value, and the rest have 0. `getAll(1)` takes about 100ms on my machine.
+In [this example I made](https://dumbmatter.github.io/chrome-indexeddb-index-perf/), it creates 500,000 nearly identical records in an object store with one index. 1,000 of those records have 1 for the index value, and the rest have 0. `getAll(1)` takes about 100ms on my machine.
 
 Then, I scan over all the records and change the values of the indexed property. Still 1,000 of them are 1 and 499,000 are 0, but those values are on different records than before. `getAll(1)` is now a little slower.
 
@@ -20,7 +20,7 @@ In the web app where I noticed this behavior, I have user reports that some quer
 
 A slightly different version of this code does not get slower.
 
-index2.html is the same code except when shuffling the index values, it's written more efficiently. The difference is:
+[index2.html](https://dumbmatter.github.io/chrome-indexeddb-index-perf/index2.html) is the same code except when shuffling the index values, it's written more efficiently. The difference is:
 
 - index.html - uses openCursor to scan over the entire store, only actually calling `cursor.update` on objects where the index value needs tochange
 - index2.html - after switching all 1s to 0s with `getAll(1)` (fast since there are only 1,000 of them), it precomputes the primary keys of the 1,000 new records we want to have index value 1 and uses `cursor.continue(nextKey)` to skip reading the other objects into memory
